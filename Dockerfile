@@ -21,4 +21,4 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 COPY . /code/
 
 # Heroku uses PORT, Azure App Services uses WEBSITES_PORT, Fly.io uses 8080 by default
-CMD ["sh", "-c", "uvicorn server.main:app --host 0.0.0.0 --port 6263"]
+CMD ["sh", "-c", "uvicorn server.main:app --host 0.0.0.0 --port 6261"]

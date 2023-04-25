@@ -47,7 +47,7 @@ services:
   fastapi:
     build: .
     ports:
-      - "6362:6362"
+      - "6361:6361"
     environment:
       - DB_HOST=${DB_HOST}
       - DB_USERNAME=${DB_USERNAME}
