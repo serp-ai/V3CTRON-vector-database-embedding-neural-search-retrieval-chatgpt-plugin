@@ -54,6 +54,7 @@ services:
       - "milvus-minio"
 
   fastapi-vector:
+    container_name: fastapi-vector
     build: .
     networks:
     - web_network
