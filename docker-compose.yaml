@@ -53,7 +53,7 @@ services:
       - "milvus-etcd"
       - "milvus-minio"
 
-  fastapi:
+  fastapi-vector:
     build: .
     networks:
     - web_network
