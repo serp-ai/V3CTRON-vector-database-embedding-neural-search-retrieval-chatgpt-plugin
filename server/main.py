@@ -14,7 +14,6 @@ from models.api import (
     DeleteResponse,
     QueryRequest,
     QueryResponse,
-    UpsertFileRequest,
     UpsertRequest,
     UpsertResponse,
 )
