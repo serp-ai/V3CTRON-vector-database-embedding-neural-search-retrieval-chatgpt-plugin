@@ -1,8 +1,8 @@
 {
   "schema_version": "v1",
   "name_for_model": "retrieval",
-  "name_for_human": "Retrieval Plugin",
-  "description_for_model": "Plugin for searching through the user's documents (such as files, emails, and more) to find answers to questions and retrieve relevant information. Use it whenever a user asks something that might be found in their personal information.",
+  "name_for_human": "SERP AI Retrieval Plugin",
+  "description_for_model": "Plugin for searching through the user's documents (such as files, emails, and more) to find answers to questions and retrieve relevant information. Use it whenever a user asks something that might be found in their personal information, or asks you to save information for later.",
   "description_for_human": "Search through your documents.",
   "auth": {
     "type": "user_http",
@@ -10,10 +10,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://your-app-url.com/.well-known/openapi.yaml",
+    "url": "https://vectordb-api.serp.ai/.well-known/openapi.yaml",
     "has_user_authentication": false
   },
-  "logo_url": "https://your-app-url.com/.well-known/logo.png",
-  "contact_email": "hello@contact.com", 
-  "legal_info_url": "http://example.com/legal-info"
+  "logo_url": "https://vectordb-api.serp.ai/.well-known/logo.png",
+  "contact_email": "support@serp.ai",
+  "legal_info_url": "https://serp.ai/privacy-policy/"
 }

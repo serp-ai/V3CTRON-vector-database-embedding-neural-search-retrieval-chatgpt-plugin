@@ -39,7 +39,8 @@ MILVUS_SEARCH_PARAMS = os.environ.get("MILVUS_SEARCH_PARAMS")
 MILVUS_CONSISTENCY_LEVEL = os.environ.get("MILVUS_CONSISTENCY_LEVEL")
 
 UPSERT_BATCH_SIZE = 100
-OUTPUT_DIM = 1536
+OUTPUT_DIM_OPENAI = 1536
+OUTPUT_DIM_MPNET = 768
 EMBEDDING_FIELD = "embedding"
 
 
@@ -47,7 +48,7 @@ class Required:
     pass
 
 # The fields names that we are going to be storing within Milvus, the field declaration for schema creation, and the default value
-SCHEMA_V1 = [
+SCHEMA_V1_OPENAI = [
     (
         "pk",
         FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=True),
@@ -55,7 +56,7 @@ SCHEMA_V1 = [
     ),
     (
         EMBEDDING_FIELD,
-        FieldSchema(name=EMBEDDING_FIELD, dtype=DataType.FLOAT_VECTOR, dim=OUTPUT_DIM),
+        FieldSchema(name=EMBEDDING_FIELD, dtype=DataType.FLOAT_VECTOR, dim=OUTPUT_DIM_OPENAI),
         Required,
     ),
     (
@@ -97,14 +98,66 @@ SCHEMA_V1 = [
 ]
 
 # V2 schema, remomve the "pk" field
-SCHEMA_V2 = SCHEMA_V1[1:]
-SCHEMA_V2[4][1].is_primary = True
+SCHEMA_V2_OPENAI = SCHEMA_V1_OPENAI[1:]
+SCHEMA_V2_OPENAI[4][1].is_primary = True
+
+SCHEMA_V1_MPNET = [
+    (
+        "pk",
+        FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=True),
+        Required,
+    ),
+    (
+        EMBEDDING_FIELD,
+        FieldSchema(name=EMBEDDING_FIELD, dtype=DataType.FLOAT_VECTOR, dim=OUTPUT_DIM_MPNET),
+        Required,
+    ),
+    (
+        "text",
+        FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
+        Required,
+    ),
+    (
+        "document_id",
+        FieldSchema(name="document_id", dtype=DataType.VARCHAR, max_length=65535),
+        "",
+    ),
+    (
+        "source_id",
+        FieldSchema(name="source_id", dtype=DataType.VARCHAR, max_length=65535),
+        "",
+    ),
+    (
+        "id",
+        FieldSchema(
+            name="id",
+            dtype=DataType.VARCHAR,
+            max_length=65535,
+        ),
+        "",
+    ),
+    (
+        "source",
+        FieldSchema(name="source", dtype=DataType.VARCHAR, max_length=65535),
+        "",
+    ),
+    ("url", FieldSchema(name="url", dtype=DataType.VARCHAR, max_length=65535), ""),
+    ("created_at", FieldSchema(name="created_at", dtype=DataType.INT64), -1),
+    (
+        "author",
+        FieldSchema(name="author", dtype=DataType.VARCHAR, max_length=65535),
+        "",
+    ),
+]
+
+# V2 schema, remomve the "pk" field
+SCHEMA_V2_MPNET = SCHEMA_V1_MPNET[1:]
+SCHEMA_V2_MPNET[4][1].is_primary = True
 
 
 class MilvusDataStore(DataStore):
     def __init__(
         self,
-        create_new: Optional[bool] = False,
         consistency_level: str = "Bounded",
     ):
         """Create a Milvus DataStore.
@@ -119,10 +172,25 @@ class MilvusDataStore(DataStore):
         """
         # Overwrite the default consistency level by MILVUS_CONSISTENCY_LEVEL
         self._consistency_level = MILVUS_CONSISTENCY_LEVEL or consistency_level
+        self._schema_ver = "V2"
+        self.index_params = MILVUS_INDEX_PARAMS or None
+        self.search_params = MILVUS_SEARCH_PARAMS or None
+        metric_type = "IP"
+        default_search_params = {
+            "IVF_FLAT": {"metric_type": metric_type, "params": {"nprobe": 10}},
+            "IVF_SQ8": {"metric_type": metric_type, "params": {"nprobe": 10}},
+            "IVF_PQ": {"metric_type": metric_type, "params": {"nprobe": 10}},
+            "HNSW": {"metric_type": metric_type, "params": {"ef": 10}},
+            "RHNSW_FLAT": {"metric_type": metric_type, "params": {"ef": 10}},
+            "RHNSW_SQ": {"metric_type": metric_type, "params": {"ef": 10}},
+            "RHNSW_PQ": {"metric_type": metric_type, "params": {"ef": 10}},
+            "IVF_HNSW": {"metric_type": metric_type, "params": {"nprobe": 10, "ef": 10}},
+            "ANNOY": {"metric_type": metric_type, "params": {"search_k": 10}},
+            "AUTOINDEX": {"metric_type": metric_type, "params": {}},
+        }
+        # Set the search params
+        self.search_params = default_search_params["HNSW"]
         self._create_connection()
-
-        self._create_collection(MILVUS_COLLECTION, create_new)  # type: ignore
-        self._create_index()
 
     def _print_info(self, msg):
         # TODO: logger
@@ -132,7 +200,15 @@ class MilvusDataStore(DataStore):
         # TODO: logger
         print(msg)
 
-    def _get_schema(self):
+    def _get_schema(self, embedding_method: str):
+        if embedding_method == "openai":
+            SCHEMA_V1 = SCHEMA_V1_OPENAI
+            SCHEMA_V2 = SCHEMA_V2_OPENAI
+        elif embedding_method == "mpnet":
+            SCHEMA_V1 = SCHEMA_V1_MPNET
+            SCHEMA_V2 = SCHEMA_V2_MPNET
+        else:
+            raise Exception("Invalid embedding method")
         return SCHEMA_V1 if self._schema_ver == "V1" else SCHEMA_V2
 
     def _create_connection(self):
@@ -164,14 +240,14 @@ class MilvusDataStore(DataStore):
             self._print_err("Failed to create connection to Milvus server '{}:{}', error: {}"
                             .format(MILVUS_HOST, MILVUS_PORT, e))
 
-    def _create_collection(self, collection_name, create_new: bool) -> None:
+    def _create_collection(self, collection_name, embedding_method, create_new: bool = False) -> None:
         """Create a collection based on environment and passed in variables.
 
         Args:
             create_new (bool): Whether to overwrite if collection already exists.
         """
         try:
-            self._schema_ver = "V1"
+            SCHEMA_V2 = self._get_schema(embedding_method)
             # If the collection exists and create_new is True, drop the existing collection
             if utility.has_collection(collection_name, using=self.alias) and create_new:
                 utility.drop_collection(collection_name, using=self.alias)
@@ -182,101 +258,106 @@ class MilvusDataStore(DataStore):
                 schema = [field[1] for field in SCHEMA_V2]
                 schema = CollectionSchema(schema)
                 # Use the schema to create a new collection
-                self.col = Collection(
+                col = Collection(
                     collection_name,
                     schema=schema,
                     using=self.alias,
                     consistency_level=self._consistency_level,
                 )
-                self._schema_ver = "V2"
                 self._print_info("Create Milvus collection '{}' with schema {} and consistency level {}"
                                  .format(collection_name, self._schema_ver, self._consistency_level))
             else:
                 # If the collection exists, point to it
-                self.col = Collection(
+                col = Collection(
                     collection_name, using=self.alias
                 )  # type: ignore
-                # Which sechma is used
-                for field in self.col.schema.fields:
+                # Which schema is used
+                for field in col.schema.fields:
                     if field.name == "id" and field.is_primary:
-                        self._schema_ver = "V2"
+                        _schema_ver = "V2"
                         break
                 self._print_info("Milvus collection '{}' already exists with schema {}"
-                                 .format(collection_name, self._schema_ver))
+                                 .format(collection_name, _schema_ver))
+            return True
         except Exception as e:
             self._print_err("Failed to create collection '{}', error: {}".format(collection_name, e))
 
-    def _create_index(self):
+    def _get_collection(self, collection_name):
+        return Collection(
+                    collection_name, using=self.alias
+                )
+
+    def _create_index(self, collection_name):
         # TODO: verify index/search params passed by os.environ
-        self.index_params = MILVUS_INDEX_PARAMS or None
-        self.search_params = MILVUS_SEARCH_PARAMS or None
+        col = self._get_collection(collection_name)
         try:
             # If no index on the collection, create one
-            if len(self.col.indexes) == 0:
-                if self.index_params is not None:
-                    # Convert the string format to JSON format parameters passed by MILVUS_INDEX_PARAMS
-                    self.index_params = json.loads(self.index_params)
-                    self._print_info("Create Milvus index: {}".format(self.index_params))
-                    # Create an index on the 'embedding' field with the index params found in init
-                    self.col.create_index(EMBEDDING_FIELD, index_params=self.index_params)
-                else:
-                    # If no index param supplied, to first create an HNSW index for Milvus
-                    try:
-                        i_p = {
-                            "metric_type": "IP",
-                            "index_type": "HNSW",
-                            "params": {"M": 8, "efConstruction": 64},
-                        }
-                        self._print_info("Attempting creation of Milvus '{}' index".format(i_p["index_type"]))
-                        self.col.create_index(EMBEDDING_FIELD, index_params=i_p)
-                        self.index_params = i_p
-                        self._print_info("Creation of Milvus '{}' index successful".format(i_p["index_type"]))
-                    # If create fails, most likely due to being Zilliz Cloud instance, try to create an AutoIndex
-                    except MilvusException:
-                        self._print_info("Attempting creation of Milvus default index")
-                        i_p = {"metric_type": "IP", "index_type": "AUTOINDEX", "params": {}}
-                        self.col.create_index(EMBEDDING_FIELD, index_params=i_p)
-                        self.index_params = i_p
-                        self._print_info("Creation of Milvus default index successful")
+            if len(col.indexes) == 0:
+                # if self.index_params is not None:
+                #     # Convert the string format to JSON format parameters passed by MILVUS_INDEX_PARAMS
+                #     self.index_params = json.loads(self.index_params)
+                #     self._print_info("Create Milvus index: {}".format(self.index_params))
+                #     # Create an index on the 'embedding' field with the index params found in init
+                #     col.create_index(EMBEDDING_FIELD, index_params=self.index_params)
+                # else:
+                #     # If no index param supplied, to first create an HNSW index for Milvus
+                try:
+                    i_p = {
+                        "metric_type": "IP",
+                        "index_type": "HNSW",
+                        "params": {"M": 8, "efConstruction": 64},
+                    }
+                    self._print_info("Attempting creation of Milvus '{}' index".format(i_p["index_type"]))
+                    col.create_index(EMBEDDING_FIELD, index_params=i_p)
+                    self.index_params = i_p
+                    self._print_info("Creation of Milvus '{}' index successful".format(i_p["index_type"]))
+                # If create fails, most likely due to being Zilliz Cloud instance, try to create an AutoIndex
+                except MilvusException:
+                    self._print_info("Attempting creation of Milvus default index")
+                    i_p = {"metric_type": "IP", "index_type": "AUTOINDEX", "params": {}}
+                    col.create_index(EMBEDDING_FIELD, index_params=i_p)
+                    self.index_params = i_p
+                    self._print_info("Creation of Milvus default index successful")
             # If an index already exists, grab its params
             else:
                 # How about if the first index is not vector index?
-                for index in self.col.indexes:
+                for index in col.indexes:
                     idx = index.to_dict()
                     if idx["field"] == EMBEDDING_FIELD:
                         self._print_info("Index already exists: {}".format(idx))
                         self.index_params = idx['index_param']
                         break
 
-            self.col.load()
+            col.load()
 
-            if self.search_params is not None:
-                # Convert the string format to JSON format parameters passed by MILVUS_SEARCH_PARAMS
-                self.search_params = json.loads(self.search_params)
-            else:
-                # The default search params
-                metric_type = "IP"
-                if "metric_type" in self.index_params:
-                    metric_type = self.index_params["metric_type"]
-                default_search_params = {
-                    "IVF_FLAT": {"metric_type": metric_type, "params": {"nprobe": 10}},
-                    "IVF_SQ8": {"metric_type": metric_type, "params": {"nprobe": 10}},
-                    "IVF_PQ": {"metric_type": metric_type, "params": {"nprobe": 10}},
-                    "HNSW": {"metric_type": metric_type, "params": {"ef": 10}},
-                    "RHNSW_FLAT": {"metric_type": metric_type, "params": {"ef": 10}},
-                    "RHNSW_SQ": {"metric_type": metric_type, "params": {"ef": 10}},
-                    "RHNSW_PQ": {"metric_type": metric_type, "params": {"ef": 10}},
-                    "IVF_HNSW": {"metric_type": metric_type, "params": {"nprobe": 10, "ef": 10}},
-                    "ANNOY": {"metric_type": metric_type, "params": {"search_k": 10}},
-                    "AUTOINDEX": {"metric_type": metric_type, "params": {}},
-                }
-                # Set the search params
-                self.search_params = default_search_params[self.index_params["index_type"]]
+            # if self.search_params is not None:
+            #     # Convert the string format to JSON format parameters passed by MILVUS_SEARCH_PARAMS
+            #     self.search_params = json.loads(self.search_params)
+            # else:
+            # The default search params
+            metric_type = "IP"
+            if "metric_type" in self.index_params:
+                metric_type = self.index_params["metric_type"]
+            default_search_params = {
+                "IVF_FLAT": {"metric_type": metric_type, "params": {"nprobe": 10}},
+                "IVF_SQ8": {"metric_type": metric_type, "params": {"nprobe": 10}},
+                "IVF_PQ": {"metric_type": metric_type, "params": {"nprobe": 10}},
+                "HNSW": {"metric_type": metric_type, "params": {"ef": 10}},
+                "RHNSW_FLAT": {"metric_type": metric_type, "params": {"ef": 10}},
+                "RHNSW_SQ": {"metric_type": metric_type, "params": {"ef": 10}},
+                "RHNSW_PQ": {"metric_type": metric_type, "params": {"ef": 10}},
+                "IVF_HNSW": {"metric_type": metric_type, "params": {"nprobe": 10, "ef": 10}},
+                "ANNOY": {"metric_type": metric_type, "params": {"search_k": 10}},
+                "AUTOINDEX": {"metric_type": metric_type, "params": {}},
+            }
+            # Set the search params
+            self.search_params = default_search_params[self.index_params["index_type"]]
             self._print_info("Milvus search parameters: {}".format(self.search_params))
+            return True
         except Exception as e:
             self._print_err("Failed to create index, error: {}".format(e))
 
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]], collection_name: str, mode: str = 'mpnet') -> List[str]:
         """Upsert chunks into the datastore.
 
         Args:
@@ -289,11 +370,12 @@ class MilvusDataStore(DataStore):
             List[str]: The document_id's that were inserted.
         """
         try:
+            col = self._get_collection(collection_name)
             # The doc id's to return for the upsert
             doc_ids: List[str] = []
             # List to collect all the insert data, skip the "pk" for schema V1
             offset = 1 if self._schema_ver == "V1" else 0
-            insert_data = [[] for _ in range(len(self._get_schema()) - offset)]
+            insert_data = [[] for _ in range(len(self._get_schema(embedding_method=mode)) - offset)]
 
             # Go through each document chunklist and grab the data
             for doc_id, chunk_list in chunks.items():
@@ -302,7 +384,7 @@ class MilvusDataStore(DataStore):
                 # Examine each chunk in the chunklist
                 for chunk in chunk_list:
                     # Extract data from the chunk
-                    list_of_data = self._get_values(chunk)
+                    list_of_data = self._get_values(chunk, mode)
                     # Check if the data is valid
                     if list_of_data is not None:
                         # Append each field to the insert_data
@@ -320,7 +402,7 @@ class MilvusDataStore(DataStore):
                 if len(batch[0]) != 0:
                     try:
                         self._print_info(f"Upserting batch of size {len(batch[0])}")
-                        self.col.insert(batch)
+                        col.insert(batch)
                         self._print_info(f"Upserted batch successfully")
                     except Exception as e:
                         self._print_err(f"Failed to insert batch records, error: {e}")
@@ -334,7 +416,7 @@ class MilvusDataStore(DataStore):
             return []
 
 
-    def _get_values(self, chunk: DocumentChunk) -> List[any] | None:  # type: ignore
+    def _get_values(self, chunk: DocumentChunk, mode: str) -> List[any] | None:  # type: ignore
         """Convert the chunk into a list of values to insert whose indexes align with fields.
 
         Args:
@@ -360,7 +442,7 @@ class MilvusDataStore(DataStore):
         ret = []
         # Grab data responding to each field, excluding the hidden auto pk field for schema V1
         offset = 1 if self._schema_ver == "V1" else 0
-        for key, _, default in self._get_schema()[offset:]:
+        for key, _, default in self._get_schema(embedding_method=mode)[offset:]:
             # Grab the data at the key and default to our defaults set in init
             x = values.get(key) or default
             # If one of our required fields is missing, ignore the entire entry
@@ -374,6 +456,8 @@ class MilvusDataStore(DataStore):
     async def _query(
         self,
         queries: List[QueryWithEmbedding],
+        collection_name: str,
+        mode: str = "mpnet",
     ) -> List[QueryResult]:
         """Query the QueryWithEmbedding against the MilvusDocumentSearch
 
@@ -386,6 +470,7 @@ class MilvusDataStore(DataStore):
             List[QueryResult]: Results for each search.
         """
         # Async to perform the query, adapted from pinecone implementation
+        col = self._get_collection(collection_name)
         async def _single_query(query: QueryWithEmbedding) -> QueryResult:
             try:
                 filter = None
@@ -396,14 +481,14 @@ class MilvusDataStore(DataStore):
 
                 # Perform our search
                 return_from = 2 if self._schema_ver == "V1" else 1
-                res = self.col.search(
+                res = col.search(
                     data=[query.embedding],
                     anns_field=EMBEDDING_FIELD,
                     param=self.search_params,
                     limit=query.top_k,
                     expr=filter,
                     output_fields=[
-                        field[0] for field in self._get_schema()[return_from:]
+                        field[0] for field in self._get_schema(embedding_method=mode)[return_from:]
                     ],  # Ignoring pk, embedding
                 )
                 # Results that will hold our DocumentChunkWithScores
@@ -415,7 +500,7 @@ class MilvusDataStore(DataStore):
                     # Our metadata info, falls under DocumentChunkMetadata
                     metadata = {}
                     # Grab the values that correspond to our fields, ignore pk and embedding.
-                    for x in [field[0] for field in self._get_schema()[return_from:]]:
+                    for x in [field[0] for field in self._get_schema(embedding_method=mode)[return_from:]]:
                         metadata[x] = hit.entity.get(x)
                     # If the source isn't valid, convert to None
                     if metadata["source"] not in Source.__members__:
@@ -443,12 +528,18 @@ class MilvusDataStore(DataStore):
             *[_single_query(query) for query in queries]
         )
         return results
+    
+    async def create_collection(self, collection_name: str, embedding_method: str, create_new: bool = False) -> None:
+        collection_response = self._create_collection(collection_name, embedding_method, create_new=create_new)
+        index_response = self._create_index(collection_name)
+        return collection_response == True and index_response == True
 
     async def delete(
         self,
         ids: Optional[List[str]] = None,
         filter: Optional[DocumentMetadataFilter] = None,
         delete_all: Optional[bool] = None,
+        collection_name: str = None,
     ) -> bool:
         """Delete the entities based either on the chunk_id of the vector,
 
@@ -458,13 +549,14 @@ class MilvusDataStore(DataStore):
             delete_all (Optional[bool], optional): Whether to drop the collection and recreate it. Defaults to None.
         """
         # If deleting all, drop and create the new collection
+        col = self._get_collection(collection_name)
         if delete_all:
-            coll_name = self.col.name
+            coll_name = col.name
             self._print_info("Delete the entire collection {} and create new one".format(coll_name))
             # Release the collection from memory
-            self.col.release()
+            col.release()
             # Drop the collection
-            self.col.drop()
+            col.drop()
             # Recreate the new collection
             self._create_collection(coll_name, True)
             self._create_index()
@@ -482,7 +574,7 @@ class MilvusDataStore(DataStore):
                 # Add quotation marks around the string format id
                 ids = ['"' + str(id) + '"' for id in ids]
                 # Query for the pk's of entries that match id's
-                ids = self.col.query(f"document_id in [{','.join(ids)}]")
+                ids = col.query(f"document_id in [{','.join(ids)}]")
                 # Convert to list of pks
                 pks = [str(entry[pk_name]) for entry in ids]  # type: ignore
                 # for schema V2, the "id" is varchar, rewrite the expression
@@ -495,7 +587,7 @@ class MilvusDataStore(DataStore):
                     batch_pks = pks[:batch_size]
                     pks = pks[batch_size:]
                     # Delete the entries batch by batch
-                    res = self.col.delete(f"{pk_name} in [{','.join(batch_pks)}]")
+                    res = col.delete(f"{pk_name} in [{','.join(batch_pks)}]")
                     # Increment our deleted count
                     delete_count += int(res.delete_count)  # type: ignore
         except Exception as e:
@@ -509,7 +601,7 @@ class MilvusDataStore(DataStore):
                 # Check if there is anything to filter
                 if len(filter) != 0:  # type: ignore
                     # Query for the pk's of entries that match filter
-                    res = self.col.query(filter)  # type: ignore
+                    res = col.query(filter)  # type: ignore
                     # Convert to list of pks
                     pks = [str(entry[pk_name]) for entry in res]  # type: ignore
                     # for schema V2, the "id" is varchar, rewrite the expression
@@ -520,7 +612,7 @@ class MilvusDataStore(DataStore):
                         batch_pks = pks[:batch_size]
                         pks = pks[batch_size:]
                         # Delete the entries batch by batch
-                        res = self.col.delete(f"{pk_name} in [{','.join(batch_pks)}]")  # type: ignore
+                        res = col.delete(f"{pk_name} in [{','.join(batch_pks)}]")  # type: ignore
                         # Increment our delete count
                         delete_count += int(res.delete_count)  # type: ignore
         except Exception as e:

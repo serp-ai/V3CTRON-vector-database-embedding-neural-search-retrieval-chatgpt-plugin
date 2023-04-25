@@ -3,7 +3,7 @@ import os
 
 
 async def get_datastore() -> DataStore:
-    datastore = os.environ.get("DATASTORE")
+    datastore ='milvus' # os.environ.get("DATASTORE")
     assert datastore is not None
 
     match datastore:

@@ -64,3 +64,8 @@ class QueryWithEmbedding(Query):
 class QueryResult(BaseModel):
     query: str
     results: List[DocumentChunkWithScore]
+
+
+class ActiveCollection(BaseModel):
+    collection_name: str
+    overview: Optional[str]

@@ -5,6 +5,7 @@ from models.models import Document, DocumentChunk, DocumentChunkMetadata
 import tiktoken
 
 from services.openai import get_embeddings
+from services.mpnet import get_mpnet_embeddings
 
 # Global variables
 tokenizer = tiktoken.get_encoding(
@@ -147,7 +148,7 @@ def create_document_chunks(
 
 
 def get_document_chunks(
-    documents: List[Document], chunk_token_size: Optional[int]
+    documents: List[Document], chunk_token_size: Optional[int], mode:str='openai', model=None, tokenizer=None
 ) -> Dict[str, List[DocumentChunk]]:
     """
     Convert a list of documents into a dictionary from document id to list of document chunks.
@@ -189,7 +190,12 @@ def get_document_chunks(
         ]
 
         # Get the embeddings for the batch texts
-        batch_embeddings = get_embeddings(batch_texts)
+        if mode == 'openai':
+            batch_embeddings = get_embeddings(batch_texts)
+        elif mode == 'mpnet':
+            batch_embeddings = get_mpnet_embeddings(batch_texts, tokenizer, model)
+        else:
+            raise ValueError('mode should be either openai or mpnet')
 
         # Append the batch embeddings to the embeddings list
         embeddings.extend(batch_embeddings)
