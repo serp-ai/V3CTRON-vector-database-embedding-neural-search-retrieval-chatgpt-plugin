@@ -9,9 +9,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-class UpsertFileRequest(BaseModel):
-    collection_name: str
-
 class UpsertRequest(BaseModel):
     collection_name: str
     documents: List[Document]

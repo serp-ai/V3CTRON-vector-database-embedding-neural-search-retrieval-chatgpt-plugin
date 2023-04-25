@@ -120,7 +120,7 @@ async def upsert_file(
     db = Depends(get_db),
     file: UploadFile = File(...),
     metadata: Optional[str] = Form(None),
-    request: UpsertFileRequest = Body(...),
+    collection_name: str = Form(None),
 ):
     try:
         metadata_obj = (
@@ -134,7 +134,7 @@ async def upsert_file(
     document = await get_document_from_file(file, metadata_obj)
 
     try:
-        collection = await get_collection_from_db(api_key, request.collection_name, db=db)
+        collection = await get_collection_from_db(api_key, collection_name, db=db)
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=500, detail="Internal Service Error")
