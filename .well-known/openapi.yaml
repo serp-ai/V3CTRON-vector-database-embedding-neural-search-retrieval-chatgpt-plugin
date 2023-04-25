@@ -29,7 +29,7 @@ paths:
   /upsert:
     post:
       summary: Upsert
-      description: Save chat information. Accepts an array of documents with text (potential questions + conversation text), metadata (source 'chat' and timestamp, no ID as this will be generated). Confirm with the user before saving, ask for more details/context.
+      description: Save chat information. Accepts a collection name and an array of documents with text (potential questions + conversation text), metadata (source 'chat' and timestamp, no ID as this will be generated). Confirm with the user before saving, ask for more details/context.
       operationId: upsert_upsert_post
       requestBody:
         content:
@@ -55,7 +55,7 @@ paths:
   /query:
     post:
       summary: Query
-      description: Accepts search query objects array each with query and optional filter. Break down complex questions into sub-questions. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.
+      description: Accepts a collection name and a search query objects array each with query and optional filter. Break down complex questions into sub-questions. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.
       operationId: query_query_post
       requestBody:
         content:
@@ -226,9 +226,13 @@ components:
     QueryRequest:
       title: QueryRequest
       required:
+        - collection_name
         - queries
       type: object
       properties:
+        collection_name:
+          title: Collection Name
+          type: string
         queries:
           title: Queries
           type: array
@@ -271,9 +275,13 @@ components:
     UpsertRequest:
       title: UpsertRequest
       required:
+        - collection_name
         - documents
       type: object
       properties:
+        collection_name:
+          title: Collection Name
+          type: string
         documents:
           title: Documents
           type: array
