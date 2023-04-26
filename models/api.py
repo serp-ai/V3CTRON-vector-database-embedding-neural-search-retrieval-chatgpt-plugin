@@ -60,9 +60,7 @@ class UpdateCollectionRequest(BaseModel):
 
 
 class UpdateCollectionResponse(BaseModel):
-    collection_name: str
-    overview: Optional[str] = None
-    description: Optional[str] = None
+    success: bool
 
 
 class CreateCollectionResponse(BaseModel):
