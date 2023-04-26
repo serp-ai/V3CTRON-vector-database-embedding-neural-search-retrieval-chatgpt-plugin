@@ -4,6 +4,7 @@ from models.models import (
     Query,
     QueryResult,
     ActiveCollection,
+    Collection,
 )
 from pydantic import BaseModel
 from typing import List, Optional
@@ -70,3 +71,7 @@ class CreateCollectionResponse(BaseModel):
 
 class GetActiveCollectionsResponse(BaseModel):
     collections: List[ActiveCollection]
+
+
+class GetAllCollectionsResponse(BaseModel):
+    collections: List[Collection]

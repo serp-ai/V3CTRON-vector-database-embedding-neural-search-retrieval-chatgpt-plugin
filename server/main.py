@@ -115,6 +115,22 @@ async def get_active_collections(
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=500, detail="Internal Service Error")
+    
+
+@app.get(
+    "/get-all-collections",
+    response_model=GetAllCollectionsResponse,
+)
+async def get_all_collections_from_db(
+    api_key: str = Depends(validate_api_key),
+    db = Depends(get_db),
+):
+    try:
+        collections = await get_all_collections_from_db(api_key, db=db)
+        return GetAllCollectionsResponse(collections=collections)
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
 
 
 @app.post(

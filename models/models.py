@@ -69,3 +69,11 @@ class QueryResult(BaseModel):
 class ActiveCollection(BaseModel):
     collection_name: str
     overview: Optional[str]
+
+
+class Collection(BaseModel):
+    collection_name: str
+    embedding_method: str
+    overview: Optional[str] = None
+    description: Optional[str] = None
+    is_active: bool
