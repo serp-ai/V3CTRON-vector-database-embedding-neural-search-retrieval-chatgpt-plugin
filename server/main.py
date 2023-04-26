@@ -72,10 +72,14 @@ async def create_collection(
 async def update_collection(
     api_key: str = Depends(validate_api_key),
     db = Depends(get_db),
-    request: UpdateCollectionRequest = Body(...),
+    collection_name: str = Form(...),
+    new_collection_name: Optional[str] = Form(None),
+    overview: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None),
 ):
     try:
-        response = await update_collection_in_db(api_key, request.collection_name, request.new_collection_name, request.overview, request.description, request.is_active, db=db)
+        response = await update_collection_in_db(api_key, collection_name, new_collection_name, overview, description, is_active, db=db)
         return UpdateCollectionResponse(success=response)
     except Exception as e:
         print("Error:", e)
