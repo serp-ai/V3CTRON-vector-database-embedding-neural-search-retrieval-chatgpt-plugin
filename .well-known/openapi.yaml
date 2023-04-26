@@ -55,7 +55,7 @@ paths:
   /query:
     post:
       summary: Query
-      description: Accepts a collection name and an objects array with each item having a search query and an optional filter. Break down complex queries into sub-queries. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.
+      description: Accepts a collection name and an objects array with each item having a query and an optional filter. Break down complex queries into sub-queries. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.
       operationId: query_query_post
       requestBody:
         content:

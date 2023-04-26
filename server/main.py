@@ -264,7 +264,7 @@ async def query_main(
     "/query",
     response_model=QueryResponse,
     # NOTE: We are describing the shape of the API endpoint input due to a current limitation in parsing arrays of objects from OpenAPI schemas. This will not be necessary in the future.
-    description="Accepts a collection name and an objects array with each item having a search query and an optional filter. Break down complex queries into sub-queries. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
+    description="Accepts a collection name and an objects array with each item having a query and an optional filter. Break down complex queries into sub-queries. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
 )
 async def query(
     api_key: str = Depends(validate_api_key),
