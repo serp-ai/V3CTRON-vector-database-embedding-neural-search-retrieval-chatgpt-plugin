@@ -6,17 +6,6 @@ from fastapi import FastAPI, File, Form, HTTPException, Depends, Body, UploadFil
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 
-from models.api import (
-    CreateCollectionResponse,
-    CreateCollectionRequest,
-    GetActiveCollectionsResponse,
-    DeleteRequest,
-    DeleteResponse,
-    QueryRequest,
-    QueryResponse,
-    UpsertRequest,
-    UpsertResponse,
-)
 from datastore.factory import get_datastore
 from services.file import get_document_from_file
 
@@ -27,6 +16,7 @@ from models.models import DocumentMetadata, Source
 from transformers import AutoTokenizer, AutoModel
 
 from db import *
+from models.api import *
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -53,8 +43,8 @@ app.mount("/sub", sub_app)
 
 
 @app.post(
-        "/create-collection",
-        response_model=CreateCollectionResponse,
+    "/create-collection",
+    response_model=CreateCollectionResponse,
 )
 async def create_collection(
     api_key: str = Depends(validate_api_key),
@@ -68,8 +58,25 @@ async def create_collection(
         collection_name = collection_name.replace(" ", "_").replace("-", "_")
         response = await datastore.create_collection(collection_name, request.embedding_method)
         if response == True:
-            response = await add_collection_to_db(api_key, request.collection_name, collection_name, request.embedding_method, request.overview, request.description, db=db)
+            response = await add_collection_to_db(api_key, request.collection_name, collection_name, request.embedding_method, request.overview, request.description, request.is_active, db=db)
         return CreateCollectionResponse(success=response)
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
+
+
+@app.post(
+    "/update-collection",
+    response_model=UpdateCollectionResponse,
+)
+async def update_collection(
+    api_key: str = Depends(validate_api_key),
+    db = Depends(get_db),
+    request: UpdateCollectionRequest = Body(...),
+):
+    try:
+        response = await update_collection_in_db(api_key, request.collection_name, request.new_collection_name, request.overview, request.description, request.is_active, db=db)
+        return UpdateCollectionResponse(success=response)
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=500, detail="Internal Service Error")
@@ -235,7 +242,7 @@ async def query_main(
     "/query",
     response_model=QueryResponse,
     # NOTE: We are describing the shape of the API endpoint input due to a current limitation in parsing arrays of objects from OpenAPI schemas. This will not be necessary in the future.
-    description="Accepts collection name and a search query objects array each with query and optional filter. Break down complex questions into sub-questions. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
+    description="Accepts a collection name and an objects array with each item having a search query and an optional filter. Break down complex queries into sub-queries. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
 )
 async def query(
     api_key: str = Depends(validate_api_key),
@@ -287,6 +294,26 @@ async def delete(
             delete_all=request.delete_all,
             collection_name=collection_name,
         )
+        return DeleteResponse(success=success)
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
+    
+
+@sub_app.delete_collection(
+    "/delete-collection",
+    response_model=DeleteResponse,
+    description="Delete a collection and all its data. This is irreversible.",
+)
+async def delete_collection(
+    api_key: str = Depends(validate_api_key),
+    db = Depends(get_db),
+    request: DeleteCollectionRequest = Body(...),
+):
+    try:
+        success = await datastore.delete_collection(request.collection_name)
+        if success:
+            success = await delete_collection_from_db(api_key, request.collection_name, db=db)
         return DeleteResponse(success=success)
     except Exception as e:
         print("Error:", e)

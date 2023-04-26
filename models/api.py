@@ -38,9 +38,28 @@ class DeleteResponse(BaseModel):
     success: bool
 
 
+class DeleteCollectionRequest(BaseModel):
+    collection_name: str
+
+
 class CreateCollectionRequest(BaseModel):
     collection_name: str
     embedding_method: str = "mpnet"
+    overview: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+class UpdateCollectionRequest(BaseModel):
+    collection_name: str
+    new_collection_name: Optional[str] = None
+    overview: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class UpdateCollectionResponse(BaseModel):
+    collection_name: str
     overview: Optional[str] = None
     description: Optional[str] = None
 

@@ -533,6 +533,21 @@ class MilvusDataStore(DataStore):
         collection_response = self._create_collection(collection_name, embedding_method, create_new=create_new)
         index_response = self._create_index(collection_name)
         return collection_response == True and index_response == True
+    
+    
+    async def delete_collection(self, collection_name: str) -> None:
+        try:
+            col = self._get_collection(collection_name)
+            self._print_info("Delete the entire collection {}".format(col.name))
+            # Release the collection from memory
+            col.release()
+            # Drop the collection
+            col.drop()
+            return True
+        except Exception as e:
+            self._print_err("Failed to delete collection, error: {}".format(e))
+            return False
+        
 
     async def delete(
         self,

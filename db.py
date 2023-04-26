@@ -98,21 +98,95 @@ async def get_collection_from_db(api_key: str, collection_name: str, db: mysql.c
     return collection
 
 
-async def add_collection_to_db(api_key: str, name: str, collection_name: str, embedding_method: str, overview: str, description: str, db: mysql.connector.MySQLConnection):
+async def add_collection_to_db(api_key: str, name: str, collection_name: str, embedding_method: str, overview: str, description: str, is_active: bool, db: mysql.connector.MySQLConnection):
     try:
         cursor = db.cursor()
         query = """
         INSERT INTO _vector_collections (user_id, name, collection_name, embedding_method, overview, description, is_active)
-        SELECT u.user_id, %s, %s, %s, %s, %s, 1
+        SELECT u.user_id, %s, %s, %s, %s, %s, %s
         FROM _users u
         INNER JOIN _vector_chat_api_keys vcak
             ON u.user_id = vcak.user_id
         WHERE vcak.api_key = %s AND vcak.is_active = 1
         """
-        cursor.execute(query, (name, collection_name, embedding_method, overview, description, api_key))
+        if is_active is None:
+            is_active = False
+        cursor.execute(query, (name, collection_name, embedding_method, overview, description, is_active, api_key))
         db.commit()
         return True
     except Exception as e:
         print("Error:", e)
         return False
 
+
+async def update_collection_in_db(api_key: str, name: str, new_name: str, overview: str, description: str, is_active: bool, db: mysql.connector.MySQLConnection):
+    try:
+        cursor = db.cursor()
+        # Start constructing the query
+        query = """
+        UPDATE _vector_collections vc
+        INNER JOIN _users u
+            ON vc.user_id = u.user_id
+        INNER JOIN _vector_chat_api_keys vcak
+            ON u.user_id = vcak.user_id
+        SET
+        """
+
+        # Add fields to update and their values
+        update_fields = []
+        values = []
+
+        if new_name is not None:
+            update_fields.append("vc.name = %s")
+            values.append(new_name)
+
+        if overview is not None:
+            update_fields.append("vc.overview = %s")
+            values.append(overview)
+
+        if description is not None:
+            update_fields.append("vc.description = %s")
+            values.append(description)
+
+        if is_active is not None:
+            update_fields.append("vc.is_active = %s")
+            values.append(is_active)
+
+        # Join the update fields in the query
+        query += ", ".join(update_fields)
+
+        # Add the WHERE clause
+        query += """
+        WHERE vc.name = %s AND vcak.api_key = %s
+        """
+
+        # Add the name and API key to the values list
+        values.extend([name, api_key])
+
+        # Execute the query
+        cursor.execute(query, values)
+        db.commit()
+        return True
+    except Exception as e:
+        print("Error:", e)
+        return False
+    
+
+async def delete_collection_from_db(api_key: str, name: str, db: mysql.connector.MySQLConnection):
+    try:
+        cursor = db.cursor()
+        query = """
+        DELETE vc
+        FROM _vector_collections vc
+        INNER JOIN _users u
+            ON vc.user_id = u.user_id
+        INNER JOIN _vector_chat_api_keys vcak
+            ON u.user_id = vcak.user_id
+        WHERE vc.name = %s AND vcak.api_key = %s
+        """
+        cursor.execute(query, (name, api_key))
+        db.commit()
+        return True
+    except Exception as e:
+        print("Error:", e)
+        return False
