@@ -300,7 +300,7 @@ async def delete(
         raise HTTPException(status_code=500, detail="Internal Service Error")
     
 
-@sub_app.delete_collection(
+@app.delete_collection(
     "/delete-collection",
     response_model=DeleteResponse,
     description="Delete a collection and all its data. This is irreversible.",
