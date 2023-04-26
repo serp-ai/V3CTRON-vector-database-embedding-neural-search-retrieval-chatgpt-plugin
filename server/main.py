@@ -126,7 +126,7 @@ async def get_all_collections_from_db(
     db = Depends(get_db),
 ):
     try:
-        collections = await get_all_collections_from_db(api_key, db=db)
+        collections = await get_all_collections_from_db(api_key, db=db, return_only_names_and_overviews=False)
         return GetAllCollectionsResponse(collections=collections)
     except Exception as e:
         print("Error:", e)

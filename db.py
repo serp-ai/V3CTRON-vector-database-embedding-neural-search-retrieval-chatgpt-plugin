@@ -68,13 +68,13 @@ async def get_collections_from_db(api_key: str, db: mysql.connector.MySQLConnect
         """
     else:
         query = """
-        SELECT vc.name, vc.collection_name, vc.embedding_method, vc.description, vc.overview
+        SELECT vc.name, vc.collection_name, vc.embedding_method, vc.description, vc.overview, vc.is_active
         FROM _users u
         INNER JOIN _vector_chat_api_keys vcak
             ON u.user_id = vcak.user_id
         INNER JOIN _vector_collections vc
             ON u.user_id = vc.user_id AND vc.is_active = 1
-        WHERE vcak.api_key = %s AND vcak.is_active = 1
+        WHERE vcak.api_key = %s
         """
     cursor.execute(query, (api_key,))
 
