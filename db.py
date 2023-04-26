@@ -73,8 +73,8 @@ async def get_collections_from_db(api_key: str, db: mysql.connector.MySQLConnect
         INNER JOIN _vector_chat_api_keys vcak
             ON u.user_id = vcak.user_id
         INNER JOIN _vector_collections vc
-            ON u.user_id = vc.user_id AND vc.is_active = 1
-        WHERE vcak.api_key = %s
+            ON u.user_id = vc.user_id
+        WHERE vcak.api_key = %s AND vcak.is_active = 1
         """
     cursor.execute(query, (api_key,))
 
