@@ -127,6 +127,8 @@ async def get_all_collections_from_db(
 ):
     try:
         collections = await get_collections_from_db(api_key, db=db, return_only_names_and_overviews=False)
+        for collection in collections:
+            collection['collection_name'] = collection.pop('name')
         return GetAllCollectionsResponse(collections=collections)
     except Exception as e:
         print("Error:", e)
