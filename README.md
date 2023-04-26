@@ -3,14 +3,19 @@
  <h1>V3CTRON</h1> 
 <p>A Vector Embedding Neural Search Retrieval Database ChatGPT Plugin</p>
 
-  <img src="https://user-images.githubusercontent.com/45643901/234560866-558b6fa5-71b1-4629-b18c-88f9f93aca22.png" alt="SERP AI Logo" width="300px">
+  <img src="https://user-images.githubusercontent.com/45643901/234560866-558b6fa5-71b1-4629-b18c-88f9f93aca22.png" alt="V3CTRON" width="300px">
   
 </div>
 
   
 <br><br><br>
   
-# V3CTRON ChatGPT Retreival Plugin
+# V3CTRON Retrieval
+
+V3CTRON retrieval is the fastest data access system for flexible semantic search and retrieval of personal or organizational documents using natural language queries.
+
+***
+
 
 Find an example video of a Retrieval Plugin that has access to the UN Annual Reports from 2018 to 2022 [here](https://cdn.openai.com/chat-plugins/retrieval-gh-repo-readme/Retrieval-Final.mp4).
 
