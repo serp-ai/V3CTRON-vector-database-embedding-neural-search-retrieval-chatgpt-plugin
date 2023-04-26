@@ -1,10 +1,11 @@
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/45643901/230811858-ef24f1ad-1c64-4cc6-a49a-63599d2eec95.png" alt="SERP AI Logo" width="50">
+  <img src="https://user-images.githubusercontent.com/45643901/234520878-d7d8df31-dd51-4342-b843-68d7a224c5c2.jpg" alt="SERP AI Logo" width="100">
   <h1>Welcome to the SERP AI</h1>
   <h3><strong>Artificial Intelligence for the greatest good, for the greatest number.</strong></h3>
   
 </div>
 <br>
+
 
 
 
