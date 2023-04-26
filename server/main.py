@@ -329,7 +329,8 @@ async def delete_collection(
     request: DeleteCollectionRequest = Body(...),
 ):
     try:
-        success = await datastore.delete_collection(request.collection_name)
+        collection_name, _ = await get_collection_from_db(api_key, request.collection_name, db=db)
+        success = await datastore.delete_collection(collection_name)
         if success:
             success = await delete_collection_from_db(api_key, request.collection_name, db=db)
         return DeleteResponse(success=success)
