@@ -1,6 +1,6 @@
 <div align="center">
 
- <h1>V3CRTON</h1> 
+ <h1>V3CTRON</h1> 
 <p>A Vector Embedding Neural Search Retrieval Database ChatGPT Plugin</p>
 
   <img src="https://user-images.githubusercontent.com/45643901/234560866-558b6fa5-71b1-4629-b18c-88f9f93aca22.png" alt="SERP AI Logo" width="300px">
