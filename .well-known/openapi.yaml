@@ -4,7 +4,7 @@ info:
   description: A retrieval API for querying and filtering documents based on natural language queries and metadata
   version: 1.0.0
 servers:
-  - url: "https://vectordb-api.serp.ai"
+  - url: "https://v3ctron.serp.ai"
 paths:
   /get-active-collections:
     get:

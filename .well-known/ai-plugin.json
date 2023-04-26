@@ -10,10 +10,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://vectordb-api.serp.ai/.well-known/openapi.yaml",
+    "url": "https://v3ctron.serp.ai/.well-known/openapi.yaml",
     "has_user_authentication": false
   },
-  "logo_url": "https://vectordb-api.serp.ai/.well-known/logo.png",
+  "logo_url": "https://v3ctron.serp.ai/.well-known/logo.png",
   "contact_email": "support@serp.ai",
   "legal_info_url": "https://serp.ai/privacy-policy/"
 }

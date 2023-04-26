@@ -47,7 +47,7 @@ sub_app = FastAPI(
     title="SERP AI Retrieval Plugin",
     description="A retrieval API for querying and filtering documents based on natural language queries and metadata",
     version="1.0.0",
-    servers=[{"url": "https://vectordb-api.serp.ai"}]
+    servers=[{"url": "https://v3ctron.serp.ai"}]
 )
 app.mount("/sub", sub_app)
 
