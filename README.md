@@ -16,12 +16,26 @@ V3CTRON retrieval is the fastest data access system for flexible semantic search
 
 ***
 
+Scientific Research Paper:
+- [Social Science Research Network - V3CTRON Paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4430463)
+- [Paperswithcode - V3CTRON Paper](https://paperswithcode.com/paper/v3ctron-data-retrieval-access-system-for)
 
-Find an example video of a Retrieval Plugin that has access to the UN Annual Reports from 2018 to 2022 [here](https://cdn.openai.com/chat-plugins/retrieval-gh-repo-readme/Retrieval-Final.mp4).
+***
+## Interface Screenshots
+
+<img width="1338" alt="Screenshot 2023-05-23 at 17 07 44" src="https://github.com/serp-ai/V3CTRON-vector-database-embedding-neural-search-retrieval-chatgpt-plugin/assets/45643901/226d1d8a-4a7d-437e-86cf-8a29a0b92d37">
+
+<br>
+
+<img width="1339" alt="Screenshot 2023-05-23 at 17 15 43" src="https://github.com/serp-ai/V3CTRON-vector-database-embedding-neural-search-retrieval-chatgpt-plugin/assets/45643901/074b0205-f103-480f-ae1b-9a6c1f5df10c">
+
+
+
+***
 
 ## Introduction
 
-The ChatGPT Retrieval Plugin repository provides a flexible solution for semantic search and retrieval of personal or organizational documents using natural language queries. The repository is organized into several directories:
+A flexible solution for semantic search and retrieval of personal or organizational documents using natural language queries. The repository is organized into several directories:
 
 | Directory                     | Description                                                                                                                |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -35,7 +49,7 @@ The ChatGPT Retrieval Plugin repository provides a flexible solution for semanti
 | [`tests`](/tests)             | Includes integration tests for various vector database providers.                                                          |
 | [`.well-known`](/.well-known) | Stores the plugin manifest file and OpenAPI schema, which define the plugin configuration and API specification.           |
 
-This README provides detailed information on how to set up, develop, and deploy the ChatGPT Retrieval Plugin.
+This README provides detailed information on how to set up, develop, and deploy the technology.
 
 ## Table of Contents
 
