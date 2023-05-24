@@ -1,7 +1,7 @@
 <div align="center">
 
  <h1>V3CTRON</h1> 
-<p>A Vector Embedding Neural Search Retrieval Database ChatGPT Plugin</p>
+<p>A Vector Embedding Neural Search & Information Retrieval Database for embedding your personal or company's text-based documents, images, audio files and videos to query with large language models.</p>
 
   <img src="https://user-images.githubusercontent.com/45643901/234560866-558b6fa5-71b1-4629-b18c-88f9f93aca22.png" alt="V3CTRON" width="300px">
   
